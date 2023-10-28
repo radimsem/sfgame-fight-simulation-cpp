@@ -2,6 +2,7 @@
 #include <ctime>
 #include "./Character.hpp"
 #include "../enums/Roles.hpp"
+#include "../enums/GameClasses.hpp"
 
 using namespace std;
 
@@ -15,6 +16,7 @@ private:
   Character* enemy;
   int firstAttacksCount;
   int secondAttacksCount;
+  bool allowedDefending;
   void startFight(Character* firstAttacker, Character* secondAttacker);
   void attack(Character* attacker, Character* defender);
   void endGame(Character* winner, int winnersAttacksCount);
@@ -42,6 +44,7 @@ Game::~Game()
  * Starts the game by showing both fighters and deciding who will start the attack first
 */
 void Game::startGame() {
+  // printing stats before the fight
   this->player->printStats("Player");
 
   cout << endl;
@@ -52,6 +55,19 @@ void Game::startGame() {
   cout << endl;
   cout << "Fight!" << endl << endl;
 
+  // checking if the defending will be allowed in the fight
+  if (
+    this->player->getGameClass() == GameClasses::MAGE ||
+    this->enemy->getGameClass() == GameClasses::MAGE
+  )
+  {
+    this->allowedDefending = false;
+  } else 
+  {
+    this->allowedDefending = true;
+  }
+
+  // deciding who's gonna attack first & starting the fight
   int firstAttackerDecider = rand() % 2;
 
   if (firstAttackerDecider == Roles::PLAYER)
@@ -69,7 +85,10 @@ void Game::startGame() {
  * @param secondAttacker an attacker who will attack after the first attacker
 */
 void Game::startFight(Character* firstAttacker, Character* secondAttacker) {
-  while (firstAttacker->getHealth() > 0 && secondAttacker->getHealth() > 0)
+  while (
+    firstAttacker->getHealth() > 0 && 
+    secondAttacker->getHealth() > 0
+  )
   {
     if (firstAttacksCount == secondAttacksCount)
     {
@@ -97,27 +116,65 @@ void Game::startFight(Character* firstAttacker, Character* secondAttacker) {
  * @param defender a character who will earn the damage by attacker
 */
 void Game::attack(Character* attacker, Character* defender) {
-  double criticalBonus = 1.0;
+  // critical damage luck
+  int criticalBonus = 1;
   int attackLuck = rand() % 100 + 1;
 
   if (attackLuck <= attacker->getLuck())
   {
-    criticalBonus = 1.5;
+    criticalBonus *= 2;
   }
 
-  defender->setHealth(defender->getHealth() - (attacker->getDamage() * criticalBonus));
+  // dealing damage & defending
+  double dealingDamage = attacker->getDamage();
+  bool defended = false;
+  string defendingProcess;
+  double updatingDamage = 1.25;
 
-  cout << "Attacker " << attacker->getName() << " damaged defender " << defender->getName() << " with damage " << attacker->getDamage() * criticalBonus;
-
-  if (criticalBonus > 1)
+  if (this->allowedDefending)
   {
-    cout << " which was critical";
+    int defendLuck = rand() % 100 + 1;
+
+    if (defendLuck <= defender->getDefendChance())
+    {
+      dealingDamage = 0;
+      defended = true;
+      updatingDamage = 1.125;
+
+      switch (defender->getGameClass())
+      {
+      case GameClasses::SCOUT:
+        defendingProcess = "evaded!";
+        break;
+      
+      case GameClasses::WARRIOR:
+        defendingProcess = "blocked!";
+        break;
+      }
+    }
+  }
+  defender->setHealth(defender->getHealth() - (dealingDamage * criticalBonus));
+
+  // printing info about the attack
+  cout << attacker->getName() << " attacking..." << endl;
+  
+  if (defended)
+  {
+    cout << defender->getName() << " " << defendingProcess;
+  } else
+  {
+    cout << attacker->getName() << " dealed " << attacker->getDamage() * criticalBonus << " damage";
+
+    if (criticalBonus > 1)
+    {
+      cout << " which was critical";
+    }
   }
   cout << endl;
   
-  cout << "Defender " << defender->getName() << " is alive with " << defender->getHealth() << "hp" << endl << endl;
+  cout << defender->getName() << "'s health: " << defender->getHealth() << "hp" << endl << endl;
 
-  attacker->setDamage(attacker->getDamage() * 1.25);
+  attacker->setDamage(attacker->getDamage() * updatingDamage);
 }
 
 /**

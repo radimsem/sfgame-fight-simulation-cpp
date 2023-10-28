@@ -1,4 +1,9 @@
+#ifndef ROLES_HPP
+#define ROLES_HPP
+
 enum Roles {
-  PLAYER = 0,
-  ENEMY = 1
+  PLAYER,
+  ENEMY
 };
+
+#endif
